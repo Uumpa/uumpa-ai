@@ -1,0 +1,12 @@
+agent:
+  opencode:
+    _class: uumpa_ai.agents.opencode.OpenCodeAgent
+
+router:
+  default:
+    _class: uumpa_ai.routers.simple.SimpleRouter
+    default_agent: opencode
+
+entrypoint:
+  cli:
+    _class: uumpa_ai.entrypoints.cli_entrypoint.CliEntrypoint
