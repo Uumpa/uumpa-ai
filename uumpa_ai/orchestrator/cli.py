@@ -1,6 +1,7 @@
 import json
 import click
 from . import api
+from ..catalog import api as catalog_api
 
 
 @click.group()
@@ -43,4 +44,12 @@ def update_agent(**kwargs):
 @click.argument('agent-deployment-id')
 def update_agent_deployment(**kwargs):
     api.update_agent_deployment(**kwargs)
+    click.echo("OK")
+
+
+@main.command()
+@click.argument('agent-id')
+@click.argument('agent-user-id')
+def deploy_agent(agent_id, agent_user_id):
+    api.deploy_agent(catalog_api.get_item('agent', agent_id), agent_user_id)
     click.echo("OK")

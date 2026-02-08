@@ -9,13 +9,17 @@ from ..catalog import api as catalog_api
 from ..agents import api as agents_api
 
 
+def deploy_agent(agent, agent_user_id):
+    kubectl.apply(agent.get_deployment(agent_user_id))
+
+
 def start_task(content, skip_deploy=False, agent_id=None, entrypoint_id=None):
     entrypoint = catalog_api.get_item('entrypoint', entrypoint_id)
     router = catalog_api.get_item('router', config.ORCHESTRATOR_DEFAULT_ROUTER)
     agent = router.get_agent(content=content, agent_id=agent_id, entrypoint=entrypoint)
     agent_user_id, task_number = logbook_api.create_agent_task(agent, entrypoint, content)
     if not skip_deploy:
-        kubectl.apply(agent.get_deployment(agent_user_id))
+        deploy_agent(agent, agent_user_id)
     return agent_user_id, task_number
 
 

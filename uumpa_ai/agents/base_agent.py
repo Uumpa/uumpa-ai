@@ -1,11 +1,13 @@
+from contextlib import contextmanager
+
 from ..catalog.base_catalog_item import BaseCatalogItem
 from .api import get_agent_deployment_id
+from .. import config
 
 
 class BaseAgent(BaseCatalogItem):
 
-    def handle_task(self, task_number, task_content, entrypoint):
-        raise NotImplementedError()
+    # these methods are called from the orchestrator
 
     def get_deployment(self, agent_user_id):
         agent_deployment_id = get_agent_deployment_id(agent_user_id)
@@ -35,7 +37,7 @@ class BaseAgent(BaseCatalogItem):
                         'containers': [
                             {
                                 'name': 'agent',
-                                'image': 'uumpa/agent:latest',
+                                'image': 'ghcr.io/uumpa/uumpa-ai-agent:latest',
                                 'env': [
                                     {
                                         'name': 'AGENT_USER_ID',
@@ -48,3 +50,14 @@ class BaseAgent(BaseCatalogItem):
                 }
             }
         }
+
+    # this method is for local development, to help emulate the environment inside the agent container
+    @contextmanager
+    def setup_for_local_development(self, agent_user_id):
+        config.AGENT_USER_ID = agent_user_id
+        yield
+
+    # these methods are called from inside the agent container
+
+    def handle_task(self, task_number, task_content, entrypoint):
+        raise NotImplementedError()
