@@ -74,6 +74,10 @@ class OpenCodeAgent(BaseAgent):
             opencode_version = requests.get('http://127.0.0.1:4096/global/health').json()['version']
             print(f'Opencode v{opencode_version} is ready')
             session = requests.post('http://127.0.0.1:4096/session', json={}).json()
+            session_id = session['id']
+            requests.post(f'http://127.0.0.1:4096/session/{session_id}/prompt_async', json={
+
+            }).json()
 
         finally:
             self.opencode_terminate()
