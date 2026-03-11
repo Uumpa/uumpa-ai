@@ -4,12 +4,14 @@ import logging
 import click
 from dotenv import load_dotenv
 
+from .common.exceptions import UumpaAiEnvSetupException
+
 
 load_dotenv()
 
 
 @click.group()
-def main():
+def cli():
     logging.basicConfig(level=logging.INFO)
 
 
@@ -28,7 +30,15 @@ for submodule in [
 ]:
     mod = importlib.import_module(f'.{submodule}.cli', __package__)
     if mod and hasattr(mod, 'main'):
-        main.add_command(getattr(mod, 'main'), name=submodule.replace('_', '-'))
+        cli.add_command(getattr(mod, 'main'), name=submodule.replace('_', '-'))
+
+
+def main():
+    try:
+        cli()
+    except UumpaAiEnvSetupException as e:
+        click.echo(f'Error: {e}', err=True)
+        exit(1)
 
 
 if __name__ == "__main__":

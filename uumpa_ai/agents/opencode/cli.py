@@ -13,7 +13,7 @@ def main():
 @main.command()
 def iterate_events():
     for event in opencode.iterate_events():
-        print(json.dumps(event))
+        click.echo(json.dumps(event))
 
 
 @main.command()

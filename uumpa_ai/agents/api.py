@@ -1,23 +1,25 @@
-from .. import config
+import logging
+
 from ..logbook import api as logbook_api
 from ..catalog import api as catalog_api
 
 
-def get_next_task(agent_user_id=None):
+def get_next_task(agent_user_id):
     """Get the next open task this agent user should handle from the logbook
     Returns task number, task body dict, agent id and entrypoint id
     """
-    if not agent_user_id:
-        agent_user_id = config.AGENT_USER_ID
     return logbook_api.get_next_agent_task(agent_user_id)
 
 
-def handle_next_task(agent_user_id=None):
+def handle_next_task(agent_user_id):
     """Handle the next open task assigned to this agent user"""
     task_number, task_content, agent_id, entrypoint_id = get_next_task(agent_user_id)
-    agent = catalog_api.get_item('agent', agent_id)
-    entrypoint = catalog_api.get_item('entrypoint', entrypoint_id)
-    agent.handle_task(task_number, task_content, entrypoint)
+    if task_number is None:
+        logging.info(f'No pending task found for agent user {agent_user_id}')
+    else:
+        agent = catalog_api.get_item('agent', agent_id)
+        entrypoint = catalog_api.get_item('entrypoint', entrypoint_id)
+        agent.handle_task(agent_user_id, task_number, task_content, entrypoint)
 
 
 def get_agent_deployment_id(agent_user_id):

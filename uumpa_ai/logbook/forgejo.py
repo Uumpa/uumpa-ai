@@ -1,15 +1,18 @@
 import requests
 
 from .. import config
+from ..common.exceptions import UumpaAiEnvSetupException
 
 
 def request(method, path, **kwargs):
+    if not config.FORGEJO_API_URL and not config.FORGEJO_ORCHESTRATOR_ADMIN_API_TOKEN:
+        raise UumpaAiEnvSetupException('Log book is not configured, see uumpa_ai/logbook/README.md for setup instructions')
     url = f'{config.FORGEJO_API_URL}/v1/{path}'
     return requests.request(
         method,
         url,
         headers={
-            'Authorization': f'Bearer {config.FROGEJO_ORCHESTRATOR_ADMIN_API_TOKEN}',
+            'Authorization': f'Bearer {config.FORGEJO_ORCHESTRATOR_ADMIN_API_TOKEN}',
             'Content-Type': 'application/json',
         },
         **kwargs
@@ -59,3 +62,21 @@ def get_pagination_iterator(path, **kwargs):
         if len(res) < per_page:
             break
         page += 1
+
+
+def task_get_labels(task_number):
+    labels = get(f'/repos/{config.FORGEJO_LOGBOOK_ORG_NAME}/logbook/issues/{task_number}/labels')
+    return [label['name'] for label in labels] if labels else []
+
+
+def task_add_labels(task_number, labels):
+    return post(f'/repos/{config.FORGEJO_LOGBOOK_ORG_NAME}/logbook/issues/{task_number}/labels', json={
+        'labels': labels,
+    })
+
+
+def task_remove_labels(task_number, labels):
+    return [
+        delete(f'/repos/{config.FORGEJO_LOGBOOK_ORG_NAME}/logbook/issues/{task_number}/labels/{label}')
+        for label in labels
+    ]

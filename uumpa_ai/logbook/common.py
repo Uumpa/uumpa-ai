@@ -5,6 +5,9 @@ from . import forgejo
 from .. import config
 
 
+ORCHESTRATOR_TASK_LABEL = 'orchestrator-task'
+
+
 @functools.lru_cache(maxsize=None)
 def all_labels():
     return {

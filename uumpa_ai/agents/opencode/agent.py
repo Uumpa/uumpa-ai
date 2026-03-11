@@ -3,11 +3,12 @@ from contextlib import contextmanager
 import subprocess
 import signal
 import time
-
-import requests
+import secrets
+import logging
 
 from ..base_agent import BaseAgent
-from ... import config
+from . import opencode
+from ...logbook import api as logbook_api
 
 
 class OpenCodeAgent(BaseAgent):
@@ -20,11 +21,11 @@ class OpenCodeAgent(BaseAgent):
 
     def opencode_terminate(self, *args, **kwargs):
         if self.opencode_process:
-            print('Terminating opencode server...')
+            logging.info('Terminating opencode server...')
             self.opencode_process.terminate()
             self.opencode_process.wait()
             self.opencode_process = None
-            print('Opencode server terminated')
+            logging.info('Opencode server terminated')
 
     # these methods are called from the orchestrator
 
@@ -53,31 +54,42 @@ class OpenCodeAgent(BaseAgent):
         with super().setup_for_local_development(agent_user_id):
             yield
 
-    # these methods are called from inside the agent container
-
-    def handle_task(self, task_number, task_content, entrypoint):
-        print(f'Handling task {task_number} with content {task_content} and entrypoint {entrypoint}')
-        print(config.AGENT_USER_ID)
+    def handle_task(self, agent_user_id, task_number, task_content, entrypoint):
+        logbook_api.update_agent_task_status(task_number, logbook_api.AGENT_TASK_STATUS_IN_PROGRESS, verify_current_status=logbook_api.AGENT_TASK_STATUS_NEW)
+        prompt = task_content['prompt']
+        opencode.OPENCODE_PASSWORD = secrets.token_urlsafe(12)
+        logging.info(f'Starting opencode server with password: {opencode.OPENCODE_PASSWORD}')
         self.opencode_terminate()
-        print('Starting opencode server...')
         self.opencode_process = subprocess.Popen(
-            ['opencode', 'serve', '--port', '4096', '--hostname', '127.0.0.1'],
+            ['opencode', 'serve', '--port', '-1', '--hostname', '127.0.0.1'],
             cwd=os.path.expanduser("~/workspace"),
+            stdout=subprocess.PIPE,
+            env={**os.environ, 'OPENCODE_SERVER_PASSWORD': opencode.OPENCODE_PASSWORD}
         )
+        for line in self.opencode_process.stdout:
+            line = line.decode().strip()
+            logging.info(line)
+            if line.startswith('opencode server listening on http://127.0.0.1:'):
+                opencode.OPENCODE_PORT = int(line.split(':')[-1])
+                break
         try:
-            while True:
+            opencode_version = None
+            while opencode_version is None:
                 try:
-                    assert requests.get('http://127.0.0.1:4096/global/health').json()['healthy']
-                    break
+                    res = opencode.global_health()
+                    assert res['healthy']
+                    opencode_version = res.get('version') or 'unknown'
                 except:
                     time.sleep(0.1)
-            opencode_version = requests.get('http://127.0.0.1:4096/global/health').json()['version']
-            print(f'Opencode v{opencode_version} is ready')
-            session = requests.post('http://127.0.0.1:4096/session', json={}).json()
-            session_id = session['id']
-            requests.post(f'http://127.0.0.1:4096/session/{session_id}/prompt_async', json={
-
-            }).json()
-
+            logging.info(f'Opencode version {opencode_version} is ready')
+            session_id = opencode.start_session()
+            logging.info(f'Session ID: {session_id}')
+            reply = opencode.text_prompt_sync(session_id, prompt)
+            logbook_api.add_agent_task_comment(
+                task_number, logbook_api.COMMENT_TYPE_AGENT_TASK_STATUS_UPDATE,
+                reply=reply
+            )
+            entrypoint.reply(reply)
         finally:
             self.opencode_terminate()
+            logbook_api.update_agent_task_status(task_number, logbook_api.AGENT_TASK_STATUS_DONE, verify_current_status=logbook_api.AGENT_TASK_STATUS_IN_PROGRESS)

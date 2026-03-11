@@ -1,3 +1,4 @@
+import os
 import signal
 import logging
 
@@ -13,13 +14,14 @@ def deploy_agent(agent, agent_user_id):
     kubectl.apply(agent.get_deployment(agent_user_id))
 
 
-def start_task(content, skip_deploy=False, agent_id=None, entrypoint_id=None):
+def start_task(content, agent_id=None, entrypoint_id=None):
+    orchestrator_task = logbook_api.get_orchestrator_task()
+    assert orchestrator_task['hostname'] == os.uname().nodename, 'Starting orchestrator task on a different host is not supported yet'
     entrypoint = catalog_api.get_item('entrypoint', entrypoint_id)
     router = catalog_api.get_item('router', config.ORCHESTRATOR_DEFAULT_ROUTER)
     agent = router.get_agent(content=content, agent_id=agent_id, entrypoint=entrypoint)
     agent_user_id, task_number = logbook_api.create_agent_task(agent, entrypoint, content)
-    if not skip_deploy:
-        deploy_agent(agent, agent_user_id)
+    os.kill(orchestrator_task['pid'], signal.SIGHUP)
     return agent_user_id, task_number
 
 
@@ -54,7 +56,7 @@ def update_agent_deployment(agent_deployment_id):
 
 
 def update_agent(agent_user_id):
-    print(f'Updating agent: {agent_user_id}')
+    logging.info(f'Updating agent: {agent_user_id}')
 
 
 def init():

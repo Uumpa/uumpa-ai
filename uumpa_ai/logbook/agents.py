@@ -10,6 +10,11 @@ from .. import config
 AGENT_TASK_LABEL = 'agent-task'
 PENDING_AGENT_TASK_LABEL = 'pending-agent-task'
 
+AGENT_TASK_STATUS_NEW = 'new'  # this is not a label but just task without agent status label
+AGENT_TASK_STATUS_IN_PROGRESS = 'in-progress'
+AGENT_TASK_STATUS_DONE = 'done'  # this is also not a label, just the absence of status label + issue is closed
+AGENT_TASK_STATUSES = [v for k, v in globals().items() if k.startswith('AGENT_TASK_STATUS_')]
+AGENT_TASK_STATUS_LABEL_PREFIX = 'agent-task-status-'
 
 def create_agent_user():
     basename = uuid.uuid4().hex

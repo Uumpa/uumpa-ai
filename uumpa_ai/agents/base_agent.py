@@ -57,7 +57,5 @@ class BaseAgent(BaseCatalogItem):
         config.AGENT_USER_ID = agent_user_id
         yield
 
-    # these methods are called from inside the agent container
-
-    def handle_task(self, task_number, task_content, entrypoint):
+    def handle_task(self, agent_user_id, task_number, task_content, entrypoint):
         raise NotImplementedError()

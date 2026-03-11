@@ -1,13 +1,22 @@
 import json
-import time
-import traceback
 
 import requests
 
 
+OPENCODE_HOST = '127.0.0.1'
+OPENCODE_PORT = 0
+OPENCODE_PASSWORD = None
+
+
 def request(method, path, **kwargs):
-    url = f'http://127.0.0.1:4096/{path.lstrip("/")}'
+    url = f'http://{OPENCODE_HOST}:{OPENCODE_PORT}/{path.lstrip("/")}'
+    if OPENCODE_PASSWORD:
+        kwargs['auth'] = ('opencode', OPENCODE_PASSWORD)
     return requests.request(method, url, **kwargs)
+
+
+def global_health():
+    return request('get', '/global/health').json()
 
 
 def start_session():

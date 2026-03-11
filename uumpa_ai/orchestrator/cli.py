@@ -1,6 +1,6 @@
 import json
 import click
-from . import api
+from . import api, daemon
 from ..catalog import api as catalog_api
 
 
@@ -10,16 +10,21 @@ def main():
 
 
 @main.command()
+def start_daemon():
+    daemon.start()
+
+
+@main.command()
 @click.argument('content_json')
-@click.option('--skip-deploy', is_flag=True)
 @click.option('--agent-id')
 @click.option('--entrypoint-id')
 def start_task(content_json, entrypoint_id, **kwargs):
-    click.echo(json.dumps(api.start_task(
-        content=json.loads(content_json) if content_json else {},
+    agent_user_id, task_number = api.start_task(
+        content=json.loads(content_json),
         entrypoint_id=entrypoint_id or 'cli',
         **kwargs
-    )))
+    )
+    click.echo(agent_user_id)
 
 
 @main.command()
